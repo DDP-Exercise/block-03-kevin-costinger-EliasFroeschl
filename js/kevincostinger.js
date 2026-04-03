@@ -39,14 +39,159 @@
  *     the scope of his variables and of course, makes use of
  *     event delegation, to keep his event listeners tidied up!
  *
- *     You - 2026-03-25
+ *     Elias - 2026-03-25
  *******************************************************/
 let sumExpenses = 0; //Use this variable to keep the sum up to date.
 
+const form = document.querySelector("form");
+const dateInput = document.getElementById("date");
+const amountInput = document.getElementById("amount");
+const expenseInput = document.getElementById("expense");
+const expensesTableBody = document.querySelector("#expenses tbody");
+const expenseSum = document.getElementById("expenseSum");
+
+
 function submitForm(e){
     //TODO: Prevent the default behavior of the submit button.
+    e.preventDefault();
+
     //TODO: Validate the form. If everything is fine, add the expense to the tracker and reset the form.
+    if (!validateForm()) {
+        return;
+    }
+
+    const dateValue = dateInput.value;
+    const amountValue = Number(amountInput.value);
+    const expenseValue = expenseInput.value.trim();
+
+    addExpense(dateValue, amountValue, expenseValue);
+
+    form.reset(); // danach zurücksetzen
+    dateInput.focus(); // für die Benutzerfreundlichkeit --> Benutzer kann gleich wieder Datum eingeben
+
 }
+
+
+
+function validateForm(){
+    const dateValue = dateInput.value;
+    const amountValue = Number(amountInput.value); // Number da er mir einen String sonst liefert
+    const expenseValue = expenseInput.value.trim(); // Trim ist nur für die darstellung damit die eingaben von leerzeichen vorn und hinten egal sind
+
+    clearAllFieldErrors();
+
+    if (isEmpty(dateValue)) {
+        showFieldError(dateInput, "Please select a date.");
+        return false;
+    }
+
+    if (isNaN(amountValue) || amountValue < 0.01) {
+        showFieldError(amountInput, "Please enter an amount of at least 0.01.");
+        return false;
+    }
+
+    if (expenseValue.length < 3) {
+        showFieldError(expenseInput, "Please enter at least 3 numbers or letters.");
+        return false;
+    }
+
+    return true;
+}
+
+
+function addExpense(date, amount, expenseText) {
+    const newRow = document.createElement("tr"); //neues HTML Element das wir danach befüllt durch inner.html
+
+    newRow.innerHTML = `
+        <td>${date}</td>
+        <td>${formatEuro(amount)}</td>
+        <td>${expenseText}</td>
+        <td><button type="button">X</button></td>
+    `;
+
+    expensesTableBody.appendChild(newRow); // damit die neue Zeile unten an die tabelle angehängt werden
+
+    sumExpenses += amount;
+    updateExpenseSum();
+}
+
+function updateExpenseSum() {
+    expenseSum.textContent = formatEuro(sumExpenses);
+}
+
+function handleDeleteClick(e) {
+    if (e.target.tagName !== "BUTTON") {
+        return;
+    }
+
+    const row = e.target.closest("tr");//Da der Button in einer <td> steckt und diese <td> in einer <tr>, bekommen wir so genau die Zeile, die gelöscht werden soll.
+                                                                    //Hab mir das erklären lassen von der KI
+    const amountText = row.children[1].textContent; //um die richtige Zeile zu erreichen (0=Date 1=Amount 2=Expense 3=Delete)
+    const amountValue = parseEuroToNumber(amountText);
+
+    sumExpenses -= amountValue;
+    updateExpenseSum();
+
+    row.remove();
+}
+
+//Diese Funktion mithilfe von KI gelöst um meinen Bug zu fixen
+function parseEuroToNumber(euroString) {
+    return Number(
+        euroString
+            .replace(/\./g, "")
+            .replace(",", ".")
+            .replace(/[^\d.-]/g, "")
+    );
+}
+
+
+form.addEventListener("submit", submitForm);
+
+
+expensesTableBody.addEventListener("click", handleDeleteClick);
+
+//Bonus für die UX
+
+
+function showFieldError(input, message) {
+    input.style.borderColor = "red";
+    input.setCustomValidity(message);
+    input.reportValidity();
+    input.focus();
+}
+
+function clearFieldError(input) {
+    input.style.borderColor = "";
+    input.setCustomValidity("");
+}
+
+function clearAllFieldErrors() {
+    clearFieldError(dateInput);
+    clearFieldError(amountInput);
+    clearFieldError(expenseInput);
+}
+
+
+dateInput.addEventListener("input", function() {
+    clearFieldError(dateInput);
+});
+
+amountInput.addEventListener("input", function() {
+    clearFieldError(amountInput);
+});
+
+expenseInput.addEventListener("input", function() {
+    clearFieldError(expenseInput);
+});
+
+
+
+
+
+
+
+
 
 
 /*****************************
